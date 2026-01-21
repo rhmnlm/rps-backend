@@ -1,6 +1,8 @@
 package dev.rhmnlm.rpsbackend.enums;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public enum RPS {
     ROCK {
@@ -23,6 +25,17 @@ public enum RPS {
 
     public static RPS random() {
         return VALUES[ThreadLocalRandom.current().nextInt(VALUES.length)];
+    }
+
+    public static String generateMoveSets(int count) {
+        if (count < 1 || count > 10) {
+            throw new IllegalArgumentException("Count must be between 1 and 10");
+        }
+
+        return Stream.generate(RPS::random)
+                .limit(count)
+                .map(RPS::name)
+                .collect(Collectors.joining(","));
     }
 }
 
