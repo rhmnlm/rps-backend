@@ -8,11 +8,16 @@ import dev.rhmnlm.rpsbackend.entity.Game;
 import dev.rhmnlm.rpsbackend.entity.Hint;
 import dev.rhmnlm.rpsbackend.entity.Player;
 import dev.rhmnlm.rpsbackend.enums.RPS;
+import dev.rhmnlm.rpsbackend.entity.Leaderboard;
 import dev.rhmnlm.rpsbackend.repository.GameRepository;
 import dev.rhmnlm.rpsbackend.repository.HintRepository;
+import dev.rhmnlm.rpsbackend.repository.LeaderboardRepository;
 import dev.rhmnlm.rpsbackend.repository.PlayerRepository;
 import dev.rhmnlm.rpsbackend.repository.BattleHistoryRepository;
+import dev.rhmnlm.rpsbackend.util.TokenGenerator;
 import lombok.RequiredArgsConstructor;
+
+import java.time.Duration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +31,26 @@ public class BattleService {
     private final GameRepository gameRepository;
     private final HintRepository hintRepository;
     private final BattleHistoryRepository battleHistoryRepository;
+    private final LeaderboardRepository leaderboardRepository;
 
     @Transactional
     public PlayerStatsDto startBattle(String playerName) {
         // Find or create player
-        Player player = playerRepository.findByPlayerName(playerName)
-                .orElseGet(() -> {
-                    Player newPlayer = Player.builder()
-                            .playerId(UuidCreator.getTimeOrderedEpoch())
-                            .playerName(playerName)
-                            .build();
-                    return playerRepository.save(newPlayer);
-                });
+        boolean isNewPlayer = playerRepository.findByPlayerName(playerName).isEmpty();
+        String generatedToken = null;
+
+        Player player;
+        if (isNewPlayer) {
+            generatedToken = generateUniqueToken();
+            player = Player.builder()
+                    .playerId(UuidCreator.getTimeOrderedEpoch())
+                    .playerName(playerName)
+                    .token(generatedToken)
+                    .build();
+            player = playerRepository.save(player);
+        } else {
+            player = playerRepository.findByPlayerName(playerName).get();
+        }
 
         // Create new game
         Game game = Game.builder()
@@ -61,7 +74,16 @@ public class BattleService {
                 .playerName(player.getPlayerName())
                 .currentRound(0)
                 .hintsLeft(3)
+                .token(generatedToken)
                 .build();
+    }
+
+    private String generateUniqueToken() {
+        String token;
+        do {
+            token = TokenGenerator.generateToken();
+        } while (playerRepository.existsByToken(token));
+        return token;
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +109,7 @@ public class BattleService {
     private static final int TOTAL_ROUNDS = 10;
 
     @Transactional
-    public Optional<FightResponseDto> fight(String gameId, RPS playerMove) {
+    public Optional<FightResponseDto> fight(String gameId, RPS playerMove, Player authenticatedPlayer) {
         // Find the game
         Optional<Game> gameOpt = gameRepository.findById(gameId);
         if (gameOpt.isEmpty()) {
@@ -95,6 +117,11 @@ public class BattleService {
         }
 
         Game game = gameOpt.get();
+
+        // Validate ownership
+        if (!game.getPlayer().getPlayerId().equals(authenticatedPlayer.getPlayerId())) {
+            return Optional.empty();
+        }
 
         // Check if game is still active
         if (!"ACTIVE".equals(game.getStatus())) {
@@ -159,6 +186,16 @@ public class BattleService {
             game.setStatus("WON");
             gameRepository.save(game);
             gameStatus = "WON";
+
+            // Register to leaderboard
+            long durationMs = Duration.between(game.getCreatedAt(), battleHistory.getCreatedAt()).toMillis();
+            Leaderboard leaderboard = Leaderboard.builder()
+                    .id(UuidCreator.getTimeOrderedEpoch())
+                    .player(game.getPlayer())
+                    .game(game)
+                    .durationMs(durationMs)
+                    .build();
+            leaderboardRepository.save(leaderboard);
         }
 
         return Optional.of(FightResponseDto.builder()

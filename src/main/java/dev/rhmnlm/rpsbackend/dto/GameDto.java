@@ -15,6 +15,7 @@ import java.util.UUID;
 public class GameDto {
     private String gameId;
     private String movesets;
+    private String status;
     private LocalDateTime createdAt;
     private UUID playerId;
 }

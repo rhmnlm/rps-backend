@@ -22,4 +22,7 @@ public class Player {
 
     @Column(name = "player_name", nullable = false)
     private String playerName;
+
+    @Column(name = "token", nullable = false, unique = true, length = 6)
+    private String token;
 }

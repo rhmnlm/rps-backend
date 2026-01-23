@@ -7,15 +7,19 @@ import java.util.stream.Stream;
 public enum RPS {
     ROCK {
         public boolean beats(RPS other) { return other == SCISSORS; }
+        public RPS beatenBy() { return PAPER; }
     },
     PAPER {
         public boolean beats(RPS other) { return other == ROCK; }
+        public RPS beatenBy() { return SCISSORS; }
     },
     SCISSORS {
         public boolean beats(RPS other) { return other == PAPER; }
+        public RPS beatenBy() { return ROCK; }
     };
 
     public abstract boolean beats(RPS other);
+    public abstract RPS beatenBy();
 
     public static RPS fromString(String value) {
         return RPS.valueOf(value.trim().toUpperCase());

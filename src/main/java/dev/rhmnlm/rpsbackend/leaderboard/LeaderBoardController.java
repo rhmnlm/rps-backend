@@ -1,18 +1,22 @@
 package dev.rhmnlm.rpsbackend.leaderboard;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import dev.rhmnlm.rpsbackend.dto.LeaderboardEntryDto;
+import dev.rhmnlm.rpsbackend.service.LeaderboardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
+@RequiredArgsConstructor
 public class LeaderBoardController {
 
-    private static final Logger log = LoggerFactory.getLogger(LeaderBoardController.class);
+    private final LeaderboardService leaderboardService;
 
-    @GetMapping("/hell")
-    public String test(){
-        log.info("leaderboard is running");
-        return "Leaderboard service is running";
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<LeaderboardEntryDto>> getLeaderboard() {
+        return ResponseEntity.ok(leaderboardService.getTop10());
     }
 }

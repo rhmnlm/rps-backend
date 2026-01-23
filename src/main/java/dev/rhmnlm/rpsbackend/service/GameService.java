@@ -76,6 +76,7 @@ public class GameService {
         return GameDto.builder()
                 .gameId(game.getGameId())
                 .movesets(game.getMovesets())
+                .status(game.getStatus())
                 .createdAt(game.getCreatedAt())
                 .playerId(game.getPlayer() != null ? game.getPlayer().getPlayerId() : null)
                 .build();

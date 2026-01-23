@@ -56,6 +56,13 @@ public class BattleHistoryService {
     }
 
     @Transactional(readOnly = true)
+    public List<BattleHistoryDto> findByGameIdDesc(String gameId) {
+        return battleHistoryRepository.findByGameGameIdOrderByCreatedAtDesc(gameId).stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<BattleHistoryDto> findByPlayerId(UUID playerId) {
         return battleHistoryRepository.findByPlayerPlayerId(playerId).stream()
                 .map(this::toDto)

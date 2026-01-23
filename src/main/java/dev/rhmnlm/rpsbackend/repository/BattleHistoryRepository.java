@@ -11,6 +11,7 @@ import java.util.UUID;
 @Repository
 public interface BattleHistoryRepository extends JpaRepository<BattleHistory, UUID> {
     List<BattleHistory> findByGameGameIdOrderByRoundAsc(String gameId);
+    List<BattleHistory> findByGameGameIdOrderByCreatedAtDesc(String gameId);
     List<BattleHistory> findByPlayerPlayerId(UUID playerId);
     int countByGameGameId(String gameId);
 

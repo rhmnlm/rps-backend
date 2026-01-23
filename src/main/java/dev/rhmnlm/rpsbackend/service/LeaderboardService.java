@@ -1,6 +1,7 @@
 package dev.rhmnlm.rpsbackend.service;
 
 import dev.rhmnlm.rpsbackend.dto.LeaderboardDto;
+import dev.rhmnlm.rpsbackend.dto.LeaderboardEntryDto;
 import dev.rhmnlm.rpsbackend.entity.Game;
 import dev.rhmnlm.rpsbackend.entity.Leaderboard;
 import dev.rhmnlm.rpsbackend.entity.Player;
@@ -69,6 +70,29 @@ public class LeaderboardService {
         return leaderboardRepository.findAll().stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LeaderboardEntryDto> getTop10() {
+        var entries = leaderboardRepository.findTop10ByOrderByDurationMsAsc();
+        var result = new java.util.ArrayList<LeaderboardEntryDto>();
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            result.add(LeaderboardEntryDto.builder()
+                    .rank(i + 1)
+                    .playerName(entry.getPlayer().getPlayerName())
+                    .duration(formatDurationMsToHHmmss(entry.getDurationMs()))
+                    .build());
+        }
+        return result;
+    }
+
+    private String formatDurationMsToHHmmss(long durationMs) {
+        long totalSeconds = durationMs / 1000;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     @Transactional

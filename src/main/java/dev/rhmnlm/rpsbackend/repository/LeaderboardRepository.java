@@ -13,4 +13,5 @@ public interface LeaderboardRepository extends JpaRepository<Leaderboard, UUID> 
     List<Leaderboard> findAllByOrderByDurationMsAsc();
     List<Leaderboard> findByPlayerPlayerIdOrderByDurationMsAsc(UUID playerId);
     Optional<Leaderboard> findByGameGameId(String gameId);
+    List<Leaderboard> findTop10ByOrderByDurationMsAsc();
 }

@@ -5,17 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayerStatsDto {
+public class HintResponseDto {
     private String gameId;
-    private UUID playerId;
-    private String playerName;
-    private Integer currentRound;
-    private Integer hintsLeft;
-    private String token;
+    private Integer round;
+    private String hint;
+    private Integer hintsRemaining;
 }

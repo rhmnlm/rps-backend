@@ -5,17 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayerStatsDto {
-    private String gameId;
-    private UUID playerId;
+public class LeaderboardEntryDto {
+    private Integer rank;
     private String playerName;
-    private Integer currentRound;
-    private Integer hintsLeft;
-    private String token;
+    private String duration;
 }

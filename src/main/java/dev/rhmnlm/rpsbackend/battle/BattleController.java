@@ -1,14 +1,14 @@
 package dev.rhmnlm.rpsbackend.battle;
 
+import dev.rhmnlm.rpsbackend.auth.AuthInterceptor;
 import dev.rhmnlm.rpsbackend.dto.ErrorResponse;
 import dev.rhmnlm.rpsbackend.dto.FightRequestDto;
 import dev.rhmnlm.rpsbackend.dto.PlayerStatsDto;
 import dev.rhmnlm.rpsbackend.dto.StartBattleRequest;
-import dev.rhmnlm.rpsbackend.enums.RPS;
+import dev.rhmnlm.rpsbackend.entity.Player;
 import dev.rhmnlm.rpsbackend.service.BattleService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BattleController {
 
-    private static final Logger log = LoggerFactory.getLogger(BattleController.class);
     private final BattleService battleService;
 
     @PostMapping("/startBattle")
@@ -31,7 +30,7 @@ public class BattleController {
     }
 
     @PostMapping("/fight")
-    public ResponseEntity<Object> fight(@RequestBody FightRequestDto request) {
+    public ResponseEntity<Object> fight(@RequestBody FightRequestDto request, HttpServletRequest httpRequest) {
         if (request.getGameId() == null) {
             return ResponseEntity.badRequest()
                     .body(new ErrorResponse("MISSING_GAME_ID", "Game ID is mandatory."));
@@ -41,9 +40,11 @@ public class BattleController {
                     .body(new ErrorResponse("EMPTY_MOVE", "Player move is needed."));
         }
 
-        return battleService.fight(request.getGameId(), request.getPlayerMove())
+        Player player = (Player) httpRequest.getAttribute(AuthInterceptor.AUTHENTICATED_PLAYER);
+
+        return battleService.fight(request.getGameId(), request.getPlayerMove(), player)
                 .map(response -> ResponseEntity.ok((Object) response))
                 .orElseGet(() -> ResponseEntity.badRequest()
-                        .body(new ErrorResponse("GAME_NOT_FOUND", "Game not found.")));
+                        .body(new ErrorResponse("GAME_NOT_FOUND", "Game not found or not owned by you.")));
     }
 }
