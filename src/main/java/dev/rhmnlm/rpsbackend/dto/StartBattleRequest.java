@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StartBattleRequest {
     private String playerName;
+    private String token;
 }

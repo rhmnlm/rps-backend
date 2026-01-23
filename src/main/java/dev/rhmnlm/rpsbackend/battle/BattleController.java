@@ -3,8 +3,8 @@ package dev.rhmnlm.rpsbackend.battle;
 import dev.rhmnlm.rpsbackend.auth.AuthInterceptor;
 import dev.rhmnlm.rpsbackend.dto.ErrorResponse;
 import dev.rhmnlm.rpsbackend.dto.FightRequestDto;
-import dev.rhmnlm.rpsbackend.dto.PlayerStatsDto;
 import dev.rhmnlm.rpsbackend.dto.StartBattleRequest;
+import dev.rhmnlm.rpsbackend.dto.StartBattleResult;
 import dev.rhmnlm.rpsbackend.entity.Player;
 import dev.rhmnlm.rpsbackend.service.BattleService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,12 +21,20 @@ public class BattleController {
     private final BattleService battleService;
 
     @PostMapping("/startBattle")
-    public ResponseEntity<PlayerStatsDto> startGame(@RequestBody StartBattleRequest request) {
+    public ResponseEntity<Object> startGame(@RequestBody StartBattleRequest request) {
         if (request.getPlayerName() == null || request.getPlayerName().length() < 3) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("INVALID_NAME", "Player name must be at least 3 characters."));
         }
-        PlayerStatsDto playerStats = battleService.startBattle(request.getPlayerName());
-        return ResponseEntity.ok(playerStats);
+
+        StartBattleResult result = battleService.startBattle(request.getPlayerName(), request.getToken());
+
+        if (!result.isSuccess()) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse(result.getErrorCode(), result.getErrorMessage()));
+        }
+
+        return ResponseEntity.ok(result.getPlayerStats());
     }
 
     @PostMapping("/fight")

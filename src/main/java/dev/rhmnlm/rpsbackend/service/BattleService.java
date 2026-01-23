@@ -3,6 +3,7 @@ package dev.rhmnlm.rpsbackend.service;
 import com.github.f4b6a3.uuid.UuidCreator;
 import dev.rhmnlm.rpsbackend.dto.FightResponseDto;
 import dev.rhmnlm.rpsbackend.dto.PlayerStatsDto;
+import dev.rhmnlm.rpsbackend.dto.StartBattleResult;
 import dev.rhmnlm.rpsbackend.entity.BattleHistory;
 import dev.rhmnlm.rpsbackend.entity.Game;
 import dev.rhmnlm.rpsbackend.entity.Hint;
@@ -34,13 +35,14 @@ public class BattleService {
     private final LeaderboardRepository leaderboardRepository;
 
     @Transactional
-    public PlayerStatsDto startBattle(String playerName) {
-        // Find or create player
-        boolean isNewPlayer = playerRepository.findByPlayerName(playerName).isEmpty();
-        String generatedToken = null;
+    public StartBattleResult startBattle(String playerName, String providedToken) {
+        Optional<Player> existingPlayerOpt = playerRepository.findByPlayerName(playerName);
 
         Player player;
-        if (isNewPlayer) {
+        String generatedToken = null;
+
+        if (existingPlayerOpt.isEmpty()) {
+            // New player - no token required
             generatedToken = generateUniqueToken();
             player = Player.builder()
                     .playerId(UuidCreator.getTimeOrderedEpoch())
@@ -49,7 +51,20 @@ public class BattleService {
                     .build();
             player = playerRepository.save(player);
         } else {
-            player = playerRepository.findByPlayerName(playerName).get();
+            // Existing player - token validation required
+            Player existingPlayer = existingPlayerOpt.get();
+
+            if (providedToken == null || providedToken.isBlank()) {
+                return StartBattleResult.error("TOKEN_REQUIRED",
+                        "This player name already exists. Please provide your token to continue.");
+            }
+
+            if (!existingPlayer.getToken().equals(providedToken)) {
+                return StartBattleResult.error("INVALID_TOKEN",
+                        "Invalid token for this player name.");
+            }
+
+            player = existingPlayer;
         }
 
         // Create new game
@@ -68,7 +83,7 @@ public class BattleService {
                 .build();
         hintRepository.save(hint);
 
-        return PlayerStatsDto.builder()
+        PlayerStatsDto stats = PlayerStatsDto.builder()
                 .gameId(game.getGameId())
                 .playerId(player.getPlayerId())
                 .playerName(player.getPlayerName())
@@ -76,6 +91,8 @@ public class BattleService {
                 .hintsLeft(3)
                 .token(generatedToken)
                 .build();
+
+        return StartBattleResult.success(stats);
     }
 
     private String generateUniqueToken() {
