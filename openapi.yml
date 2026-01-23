@@ -1,0 +1,422 @@
+openapi: 3.0.3
+info:
+  title: RPS Backend API
+  description: Rock-Paper-Scissors game backend API
+  version: 1.0.0
+  contact:
+    name: rhmnlm
+
+servers:
+  - url: http://localhost:9999
+    description: Local development server
+
+paths:
+  /startBattle:
+    post:
+      summary: Start a new battle
+      description: Creates a new game session and returns player stats with authentication token
+      operationId: startBattle
+      tags:
+        - Battle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartBattleRequest'
+      responses:
+        '200':
+          description: Battle started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStatsDto'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fight:
+    post:
+      summary: Make a move in the battle
+      description: Submit player's move and receive the battle result
+      operationId: fight
+      tags:
+        - Battle
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FightRequestDto'
+      responses:
+        '200':
+          description: Fight result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FightResponseDto'
+        '400':
+          description: Invalid request or game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid token
+
+  /hint:
+    post:
+      summary: Get a hint for the current round
+      description: Returns a hint for the next move (limited hints available per game)
+      operationId: getHint
+      tags:
+        - Hint
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HintRequestDto'
+      responses:
+        '200':
+          description: Hint retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HintResponseDto'
+        '400':
+          description: Invalid request or game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid token
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard
+      description: Returns the top 10 players on the leaderboard
+      operationId: getLeaderboard
+      tags:
+        - Leaderboard
+      responses:
+        '200':
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntryDto'
+
+  /battleHistory:
+    get:
+      summary: Get battle history
+      description: Returns all battle records for a specific game
+      operationId: getBattleHistory
+      tags:
+        - History
+      parameters:
+        - name: gameId
+          in: query
+          required: true
+          description: Game identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Battle history records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BattleHistoryDto'
+        '400':
+          description: Missing game ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /gameHistory:
+    get:
+      summary: Get game history
+      description: Returns all games for a specific player
+      operationId: getGameHistory
+      tags:
+        - History
+      parameters:
+        - name: playerId
+          in: query
+          required: true
+          description: Player identifier (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Game history records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameDto'
+        '400':
+          description: Missing player ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Token received from /startBattle endpoint
+
+  schemas:
+    RPS:
+      type: string
+      enum:
+        - ROCK
+        - PAPER
+        - SCISSORS
+      description: Rock-Paper-Scissors move
+
+    GameStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - WON
+        - LOST
+      description: Current game status
+
+    BattleResult:
+      type: string
+      enum:
+        - WIN
+        - LOSE
+        - DRAW
+      description: Result of a single battle round
+
+    StartBattleRequest:
+      type: object
+      required:
+        - playerName
+      properties:
+        playerName:
+          type: string
+          minLength: 3
+          description: Player name (minimum 3 characters)
+          example: Player1
+        token:
+          type: string
+          description: Optional token for returning player
+          example: abc123token
+
+    PlayerStatsDto:
+      type: object
+      properties:
+        gameId:
+          type: string
+          description: UUID-based game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        playerId:
+          type: string
+          format: uuid
+          description: Player unique identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        playerName:
+          type: string
+          description: Player name
+          example: Player1
+        currentRound:
+          type: integer
+          description: Current round number
+          example: 1
+        hintsLeft:
+          type: integer
+          description: Number of hints remaining
+          example: 3
+        token:
+          type: string
+          description: Authentication token for subsequent requests
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    FightRequestDto:
+      type: object
+      required:
+        - gameId
+        - playerMove
+      properties:
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        playerMove:
+          $ref: '#/components/schemas/RPS'
+
+    FightResponseDto:
+      type: object
+      properties:
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        round:
+          type: integer
+          description: Round number
+          example: 1
+        playerMove:
+          type: string
+          description: Player's move
+          example: ROCK
+        cpuMove:
+          type: string
+          description: CPU's move
+          example: SCISSORS
+        result:
+          $ref: '#/components/schemas/BattleResult'
+        gameStatus:
+          $ref: '#/components/schemas/GameStatus'
+        drawCount:
+          type: integer
+          description: Consecutive draws in current round
+          example: 0
+
+    HintRequestDto:
+      type: object
+      required:
+        - gameId
+      properties:
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+
+    HintResponseDto:
+      type: object
+      properties:
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        round:
+          type: integer
+          description: Current round number
+          example: 1
+        hint:
+          type: string
+          description: Hint suggestion (recommended move)
+          example: ROCK
+        hintsRemaining:
+          type: integer
+          description: Number of hints still available
+          example: 2
+
+    LeaderboardEntryDto:
+      type: object
+      properties:
+        rank:
+          type: integer
+          description: Leaderboard rank (1-10)
+          example: 1
+        playerName:
+          type: string
+          description: Player name
+          example: Champion
+        duration:
+          type: string
+          description: Game duration/completion time
+          example: "00:05:30"
+
+    BattleHistoryDto:
+      type: object
+      properties:
+        battleId:
+          type: string
+          format: uuid
+          description: Unique battle identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        round:
+          type: integer
+          description: Round number
+          example: 1
+        move:
+          type: string
+          description: Player's move
+          example: ROCK
+        result:
+          type: string
+          description: Battle result (WIN, LOSE, DRAW)
+          example: WIN
+        hintUsed:
+          type: boolean
+          description: Whether hint was used in this round
+          example: false
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        playerId:
+          type: string
+          format: uuid
+          description: Player identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    GameDto:
+      type: object
+      properties:
+        gameId:
+          type: string
+          description: Game identifier
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        movesets:
+          type: string
+          description: Comma-separated list of pre-generated CPU moves
+          example: ROCK,PAPER,SCISSORS,ROCK,PAPER
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: Game creation timestamp
+          example: "2024-01-15T10:30:00"
+        playerId:
+          type: string
+          format: uuid
+          description: Player identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: INVALID_NAME
+        message:
+          type: string
+          description: Human-readable error description
+          example: Player name must be at least 3 characters
+
+tags:
+  - name: Battle
+    description: Game battle operations
+  - name: Hint
+    description: Hint system for gameplay assistance
+  - name: Leaderboard
+    description: Player rankings
+  - name: History
+    description: Game and battle history
