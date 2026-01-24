@@ -22,6 +22,7 @@ import java.time.Duration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -178,10 +179,11 @@ public class BattleService {
                 .move(playerMove.name())
                 .result(result)
                 .hintUsed(false)
+                .createdAt(LocalDateTime.now())
                 .game(game)
                 .player(game.getPlayer())
                 .build();
-        battleHistoryRepository.save(battleHistory);
+        battleHistory = battleHistoryRepository.save(battleHistory);
 
         // Update game status based on result
         String gameStatus = "ACTIVE";
