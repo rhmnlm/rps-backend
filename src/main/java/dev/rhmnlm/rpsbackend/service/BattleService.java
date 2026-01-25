@@ -40,15 +40,15 @@ public class BattleService {
         Optional<Player> existingPlayerOpt = playerRepository.findByPlayerName(playerName);
 
         Player player;
-        String generatedToken = null;
+        String token = null;
 
         if (existingPlayerOpt.isEmpty()) {
             // New player - no token required
-            generatedToken = generateUniqueToken();
+            token = generateUniqueToken();
             player = Player.builder()
                     .playerId(UuidCreator.getTimeOrderedEpoch())
                     .playerName(playerName)
-                    .token(generatedToken)
+                    .token(token)
                     .build();
             player = playerRepository.save(player);
         } else {
@@ -66,6 +66,7 @@ public class BattleService {
             }
 
             player = existingPlayer;
+            token = existingPlayer.getToken();
         }
 
         // Create new game
@@ -90,7 +91,7 @@ public class BattleService {
                 .playerName(player.getPlayerName())
                 .currentRound(0)
                 .hintsLeft(3)
-                .token(generatedToken)
+                .token(token)
                 .build();
 
         return StartBattleResult.success(stats);
